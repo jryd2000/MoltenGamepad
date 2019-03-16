@@ -67,10 +67,10 @@ class LinearCalibration : public Calibration {
             a = tmp_a * a;
             b = tmp_a*b + tmp_b;
             std::cout << "Calibration Success. Values are: " 
-                //            << " user0: " << user_values[0]
-                //            << " user1: " << user_values[1]
-                //            << " game0: " << game_values[0]
-                //            << " game1: " << game_values[1]
+                            //<< " user0: " << user_values[0]
+                            //<< " user1: " << user_values[1]
+                            //<< " game0: " << game_values[0]
+                            //<< " game1: " << game_values[1]
                 << " a: " << a
                 << " b: " << b
                 << std::endl;
@@ -81,12 +81,6 @@ class LinearCalibration : public Calibration {
         // Aply the transformation from user_value to game value
         virtual int64_t get_game_value(int64_t user_value){
             int64_t result = (user_value * a) + b;
-            // check saturation
-            if(result > ABS_RANGE){
-                result = ABS_RANGE;
-            }else if (result < -ABS_RANGE){
-                result = -ABS_RANGE;
-            }
             return result;
         }
         virtual std::shared_ptr<Calibration> clone(){

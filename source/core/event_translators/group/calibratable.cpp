@@ -83,6 +83,14 @@ void calibratable::process_syn_report(virtual_device* out){
         return;
     }
     cached_output_event_val = output_event_val;
+
+   //Fix saturation 
+   if(output_event_val > ABS_RANGE){
+        output_event_val = ABS_RANGE;
+    }else if (output_event_val < -ABS_RANGE){
+        output_event_val = -ABS_RANGE;
+    }
+
     memset(&out_ev, 0, sizeof(out_ev));
     out_ev.type = EV_ABS;
     out_ev.code = axis;

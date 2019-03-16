@@ -10,6 +10,7 @@
 #include <linux/input.h>
 #include "../plugin.h"
 #include "wii_events.h"
+#include "wiipointer.h"
 
 #define WIIMOTE_NAME "Nintendo Wii Remote"
 #define WIIMOTE_ACCEL_NAME  "Nintendo Wii Remote Accelerometer"
@@ -38,10 +39,6 @@ enum ext_type {NUNCHUK, CLASSIC, GUITAR, DRUMS, UNKNOWN};
 struct wii_leds {
   int led_fd[4];
 };
-struct irdata {
-  int x = 1023;
-  int y = 1023;
-};
 
 enum modes {NO_EXT, NUNCHUK_EXT, CLASSIC_EXT, PRO_EXT, BALANCE_EXT, MODE_UNCERTAIN};
 //MODE_UNCERTAIN is for the early stage where we don't know if this is a wiimote,
@@ -64,7 +61,7 @@ public:
   modes mode = MODE_UNCERTAIN;
 
   virtual ~wiimote();
-  
+
   virtual void handle_event(struct udev_device* dev);
 
   void enable_ir(bool enable);
@@ -97,7 +94,7 @@ protected:
   virtual int process_option(const char* opname, const MGField value);
 
 private:
-  irdata ircache[4];
+  ir_t irpointer;
   int balancecache[4] = {0, 0, 0, 0};
   int mpcache[3] = {0,0,0};
   int accelcache[3] = {0,0,0};

@@ -17,6 +17,7 @@ wiimote::~wiimote() {
   clear_node(&classic);
   clear_node(&pro);
   clear_node(&balance);
+  initialize_ir(&irpointer);
 }
 
 int wiimote::process_option(const char* name, const MGField value) {

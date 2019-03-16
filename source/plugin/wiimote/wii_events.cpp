@@ -1,5 +1,6 @@
 #include "wiimote.h"
-
+#include "wiipointer.h"
+#include "math.h"
 
 #define EVNAME(X) #X
 #define BTN DEV_KEY
@@ -351,28 +352,28 @@ void wiimote::process_ir(int fd) {
   while ((ret = read(fd, &ev, sizeof(ev))) > 0) {
     switch (ev.code) {
     case ABS_HAT0X:
-      ircache[0].x = ev.value;
+      irpointer.dot[0].rx = ev.value;
       break;
     case ABS_HAT0Y:
-      ircache[0].y = ev.value;
+      irpointer.dot[0].ry = ev.value;
       break;
     case ABS_HAT1X:
-      ircache[1].x = ev.value;
+      irpointer.dot[1].rx = ev.value;
       break;
     case ABS_HAT1Y:
-      ircache[1].y = ev.value;
+      irpointer.dot[1].ry = ev.value;
       break;
     case ABS_HAT2X:
-      ircache[2].x = ev.value;
+      irpointer.dot[2].rx = ev.value;
       break;
     case ABS_HAT2Y:
-      ircache[2].y = ev.value;
+      irpointer.dot[2].ry = ev.value;
       break;
     case ABS_HAT3X:
-      ircache[3].x = ev.value;
+      irpointer.dot[3].rx = ev.value;
       break;
     case ABS_HAT3Y:
-      ircache[3].y = ev.value;
+      irpointer.dot[3].ry = ev.value;
       break;
     case SYN_REPORT:
       compute_ir();
@@ -389,12 +390,13 @@ void wiimote::process_ir(int fd) {
 }
 
 void wiimote::compute_ir() {
+  int x;
+  int y;
   int num = 0;
-  int x = NO_IR_DATA;
-  int y = NO_IR_DATA;
   int offset = 0;
-  //Current logic: Take the leftmost visible IR source.
-  //Not great, but better than nothing?
+
+  irpointer.roll = 0;
+
   if (mode == NUNCHUK_EXT) {
     offset = nk_ir_x;
   } else {
@@ -402,20 +404,52 @@ void wiimote::compute_ir() {
   }
 
   for (int i = 0; i < 4; i++) {
-    int ir_x = ircache[i].x;
-    int ir_y = ircache[i].y;
-    if (ir_x < x && ir_x != NO_IR_DATA && ir_x > 1) {
-      x = ir_x;
-      y = ir_y;
+    if (irpointer.dot[i].rx > 1 && irpointer.dot[i].rx < NO_IR_DATA &&
+        irpointer.dot[i].ry > 1 && irpointer.dot[i].ry < NO_IR_DATA) 
+    {
+      irpointer.dot[i].visible = 1;
       num++;
     }
+    else {
+      irpointer.dot[i].visible = 0;
+    }
   }
+
+
   if (num != 0) {
-    //x axis appears to be 0-1022, y axis reported 0-800
-    //invert x axis to match user movements: aiming left makes IR dots move right on camera
-    //y-axis is already correct, likely due to y-axis/screen conventions (positive is lower)
-    send_value(offset + 0, (511-x) * IR_X_SCALE);
-    send_value(offset + 1, (y-400) * IR_Y_SCALE);
+   //If Accelerometers are enabled, calculate the roll of the controller 
+   if (accelcache[2] && accelcache[0]) {
+      irpointer.roll = atan2(accelcache[0], accelcache[2]);
+    }
+
+    process_ir_data(&irpointer);
+
+    if (irpointer.smooth_valid) {
+     x = irpointer.sx;
+     y = irpointer.sy;
+    }
+    else {
+     x = irpointer.ax;
+     y = irpointer.ay;
+    }
+
+    x = x * IR_X_SCALE;
+    y = y * IR_Y_SCALE;
+
+    if(x > ABS_RANGE){
+      x = ABS_RANGE;
+    }else if (x < -ABS_RANGE){
+      x = -ABS_RANGE;
+    }
+
+    if(y > ABS_RANGE-1){
+      y = ABS_RANGE-1;
+    }else if (y < -ABS_RANGE+1){
+      y = -ABS_RANGE+1;
+    }
+
+    send_value(offset + 0, x);
+    send_value(offset + 1, y);
   }
 
 }
